@@ -1,127 +1,160 @@
 
 import 'package:blurry_modal_progress_hud/blurry_modal_progress_hud.dart';
 import 'package:ecommerce/consts/consts.dart';
+import 'package:ecommerce/controllers/auth_controller.dart';
 import 'package:ecommerce/provider/modelHud.dart';
 import 'package:ecommerce/screens/home_page.dart';
 import 'package:ecommerce/screens/login_screen.dart';
 import 'package:ecommerce/services/auth.dart';
+import 'package:ecommerce/widgets/applogo.dart';
+import 'package:ecommerce/widgets/bg_widget.dart';
+import 'package:ecommerce/widgets/custom_button.dart';
 import 'package:ecommerce/widgets/custom_textfield.dart';
+import 'package:ecommerce/widgets/custom_textfield1.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-
-
-class SignupScreen extends StatelessWidget {
-   //SignupScreen({super.key});
+class SignupScreen extends StatefulWidget {
+   SignupScreen({super.key});
   static String id = 'SignupScreen';
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
 
-  GlobalKey<FormState>_globalkey = GlobalKey<FormState>();
-  String? _email,_password;
-  final _auth=Auth();
+class _SignupScreenState extends State<SignupScreen> {
 
-   @override
+  GlobalKey<FormState>globalkey = GlobalKey<FormState>();
+  bool? ischeck =false;
+  var authcontroller = Get.put(AuthController());
+  var nameController =TextEditingController();
+  var passwordController =TextEditingController();
+  var repasswordController =TextEditingController();
+  var emailController =TextEditingController();
+
+
+  @override
   Widget build(BuildContext context) {
-
-
-     double height = MediaQuery.of(context).size.height;
-    return   Scaffold(
-          backgroundColor: kMainColor,
-          body: BlurryModalProgressHUD(
-            inAsyncCall: Provider.of<ModelHud>(context).isLoading,
-            blurEffectIntensity: 4,
-            // progressIndicator: SpinKitFadingCircle(
-            //   color: purpleColor,
-            //   size: 90.0,
-            // ),
-            dismissible: true,
-            opacity: 0.4,
-            color: Colors.black87,
-            child: Form(
-              key: _globalkey,
-              child: ListView(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: Container(
-                      height: MediaQuery.of(context).size.height * .2,
-                      child: Stack(
-                        alignment: Alignment.center,
+    double height = context.screenHeight;
+    return bgWidget(Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            children: [
+              (height*0.1).heightBox,
+              appLogoWidget(),
+              10.heightBox,
+              "Join to ${appname}".text.fontFamily(bold).white.size(18).make(),
+              10.heightBox,
+              Obx(()=>Form(
+                key: globalkey,
+                child: Column(
+                    children:[
+                      customTextField(title: name,hint:nameHint,controller: nameController,isPass: false,onClick:(value){nameController.text=value;}),
+                      customTextField(title: email,hint:emailHint,controller: emailController,isPass: false,onClick:(value){emailController.text=value;}),
+                      customTextField(title: password,hint:passwordHint,controller: passwordController,isPass: true,onClick:(value){passwordController.text=value;}),
+                      customTextField(title: repassword,hint:repasswordHint,controller: repasswordController,isPass: true,onClick:(value){repasswordController.text=value;}),
+                      10.heightBox,
+                      Row(
                         children: [
-                          Image(
-                            image: AssetImage('assets/icons/buy.png'),
+                          Checkbox(value: ischeck , onChanged: (value){ setState((){ischeck=value;});} ,checkColor: redColor,activeColor: whiteColor,),
+                          5.widthBox,
+                          Expanded(
+                            child: RichText(text: TextSpan(
+                                children: [
+                                  TextSpan(text:"I agree to the ",style: TextStyle(
+                                      fontFamily: regular,
+                                      color:fontGrey
+                                  )),
+                                  TextSpan(text:termAndCond,style: TextStyle(
+                                      fontFamily: bold,
+                                      color:redColor
+                                  )),
+                                  TextSpan(text:" & ",style: TextStyle(
+                                      fontFamily: regular,
+                                      color:fontGrey
+                                  )),
+                                  TextSpan(text:privacyPolicy,style: TextStyle(
+                                      fontFamily: bold,
+                                      color:redColor
+                                  ))
+                                ]
+                            ),),
                           ),
-                          Positioned(
-                              bottom: 0,
-                              child: Text(
-                                "Buy it",
-                                style: TextStyle(fontFamily: 'Pacifico', fontSize: 25),
-                              )),
                         ],
                       ),
-                    ),
-                  ),
-                  SizedBox(height: height*.1),
-                  CustomTextField(hint:'Enter your name',icon: Icons.perm_identity,onClick:(value){_email=value;}),
-                  SizedBox(height: height*.02),
-                  CustomTextField(hint:'Enter your email',icon: Icons.email,onClick:(value){_email=value;}),
-                  SizedBox(height: height*.02),
-                  CustomTextField(hint:'Enter your password',icon: Icons.lock,onClick:(value){_password=value;}),
-                  SizedBox(height: height*.05),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 120),
-                    child: Builder(
-                      builder: (context) => ElevatedButton(
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(Colors.black),
-                            shape:MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(25))),
-                          ),
-                          onPressed: ()async {
-                            final modelHud = Provider.of<ModelHud>(context,listen: false);
-                            modelHud.changeisLoading(true);
-                            if(_globalkey.currentState!.validate()){
-                              _globalkey.currentState?.save();
-                              try{
-                                await _auth.signUp(_email!, _password!);
-                                modelHud.changeisLoading(true);
-                                Navigator.pushReplacementNamed(context, HomePage.id);
-                              }on FirebaseAuthException catch (e){
-                                if (e.code == 'invalid-email'){
-                                  modelHud.changeisLoading(false);
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Email is invalid")));
-                                }else if (e.code == 'email-already-in-use') {
-                                  modelHud.changeisLoading(false);
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("this email is already  registered ")));
-                                }else if (e.code == 'weak-password') {
-                                  modelHud.changeisLoading(false);
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Password is weak ")));
+                      10.heightBox,
+                      authcontroller.isLoading.value? CircularProgressIndicator(
+                        valueColor : AlwaysStoppedAnimation(redColor),
+                      )
+                      :customButton(
+                          bgColor: ischeck == true ? redColor:lightGrey,
+                          textColor: whiteColor,
+                          title: signup,
+                          onPress: ()async{
+                            authcontroller.isLoading(true);
+                            if(ischeck == true){
+                              if(globalkey.currentState!.validate()) {
+                                globalkey.currentState?.save();
+                                if(passwordController.text == repasswordController.text){
+                                  try {
+                                    await authcontroller.signupMehtod(
+                                        name: nameController.text,
+                                        email: emailController.text,
+                                        password: passwordController.text,
+                                        context: context)
+                                        .then((value) {
+                                      authcontroller.isLoading(false);
+                                    });
+                                  } catch (e) {
+                                    auth.signOut();
+                                    authcontroller.isLoading(false);
+                                  }
+                                }else{
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text("Retype password is not correct")));
                                 }
+                                authcontroller.isLoading(false);
+                              }else{
+                                authcontroller.isLoading(false);
                               }
+                            }else{
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text("You have to agree")));
+                                authcontroller.isLoading(false);
                             }
-                            modelHud.changeisLoading(false);                          },
-                          child: Text('Sign up',style: TextStyle(color: Colors.white),),)
+                          }
+                      ).box.width(context.screenWidth-50).make(),
+                      10.heightBox,
+                      RichText(text: TextSpan(
+                          children: [
 
-                    ),
-                  ),
-                  SizedBox(height: height*.05),
+                            TextSpan(text:alreadyHaveAccount,style: TextStyle(
+                                fontFamily: bold,
+                                color:fontGrey
+                            )),
+                            TextSpan(text:login,style: TextStyle(
+                                fontFamily: bold,
+                                color:redColor
+                            ))
+                          ]
+                      ),).onTap(() {/* Get.back();*/ Get.to(()=>LoginScreen());})
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Do have an account ?',style: TextStyle(color: Colors.white,fontSize:16),),
-                      GestureDetector(
-                          onTap:(){Navigator.pushNamed(context, LoginScreen.id);},
-                          child: Text(' Login',style: TextStyle(fontSize:16),
-                          )),
-
-                    ],
-                  )
-                ],
-              ),
-            ),
+                    ]
+                ).box.white.rounded.padding(EdgeInsets.all(16)).width(context.screenWidth-70).shadowSm.make(),
+              ))
+            ],
           ),
-        )
-    ;
-  }
+        ),
+      ),
+    ),
+    );  }
 }
+
+
+
 
